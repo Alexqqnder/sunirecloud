@@ -123,23 +123,6 @@ Descarga el archivo ZIP con ejemplos de colecciones de Postman y casos de uso:
 
 ---
 
-## 🎬 Ejemplos y Colecciones
-
-### 📺 Tutorial en Video: Importar Colecciones de Postman
-
-Aprende a importar y usar las colecciones de la API con este video tutorial:
-
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=vJ6Ah70Oq4s" target="_blank">
-    <img src="https://img.youtube.com/vi/vJ6Ah70Oq4s/maxresdefault.jpg" alt="Tutorial Postman" width="600">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=vJ6Ah70Oq4s" target="_blank">
-    <img src="https://img.shields.io/badge/▶️_Ver_Tutorial-YouTube-red?style=for-the-badge&logo=youtube&logoColor=white" alt="Ver en YouTube">
-  </a>
-</p>
 
 ### 📋 Pasos para Importar la Colección
 
@@ -232,11 +215,6 @@ php artisan migrate
 - **TaxCalculationService**: Cálculo de impuestos
 - **SeriesService**: Gestión de series documentarias
 
-## 📚 Documentación de la API
-
-### 📖 Documentación Oficial
-**Documentación completa y actualizada disponible en:**
-👉 **[https://apigo.apuuraydev.com/](https://apigo.apuuraydev.com/)**
 
 Esta documentación oficial incluye:
 - Guías detalladas de uso
@@ -341,32 +319,14 @@ Para análisis técnico detallado, consultar el archivo `VERIFICAR_MA.md` que co
 - Realiza pruebas exhaustivas antes de usar en producción
 - Mantén actualizadas las librerías de seguridad
 
-## 🤝 Soporte y Donaciones
 
-Si este proyecto te ha sido útil y deseas apoyar su desarrollo:
 
-### 💰 Yape (Perú)
-<p align="center">
-  <img src="./public/assets/images/yape.png" alt="Yape" width="100">
-</p>
-
-**Número:** `920468502`
-
-### 💬 WhatsApp
-**Contacto:** [https://wa.link/z50dwk](https://wa.link/z50dwk)
 
 ### 📧 Contribuciones
 - Fork el proyecto
 - Crea una rama para tu feature
 - Envía un pull request
 
----
-
-## 📞 Contacto
-
-Para consultas técnicas o colaboraciones:
-- **WhatsApp**: [https://wa.link/z50dwk](https://wa.link/z50dwk)
-- **Yape**: 920468502
 
 ---
 
