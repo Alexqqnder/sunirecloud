@@ -1,0 +1,26 @@
+{
+  "name": "webhook-receiver-example",
+  "version": "1.0.0",
+  "description": "Ejemplo de receptor de webhooks para Sistema de Facturación Electrónica SUNAT",
+  "main": "webhook-receiver-nodejs.js",
+  "scripts": {
+    "start": "node webhook-receiver-nodejs.js",
+    "dev": "nodemon webhook-receiver-nodejs.js"
+  },
+  "keywords": [
+    "webhook",
+    "sunat",
+    "facturacion",
+    "electronica",
+    "peru"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

@@ -1,0 +1,248 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\ValidationException;
+use App\Models\Branch;
+use App\Services\BancarizacionService;
+use App\Services\DetraccionService;
+
+class StoreInvoiceRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'company_id' => 'required|exists:companies,id',
+            'branch_id' => 'required|exists:branches,id',
+            'serie' => 'required|string|max:4',
+            'fecha_emision' => 'required|date',
+            'fecha_vencimiento' => 'nullable|date|after_or_equal:fecha_emision',
+            'moneda' => 'required|string|in:PEN,USD',
+            'tipo_operacion' => 'nullable|string|max:4',
+            'forma_pago_tipo' => 'required|string|in:Contado,Credito',
+            'forma_pago_cuotas' => 'nullable|array',
+            'forma_pago_cuotas.*.moneda' => 'required_with:forma_pago_cuotas|string',
+            'forma_pago_cuotas.*.monto' => 'required_with:forma_pago_cuotas|numeric|min:0',
+            'forma_pago_cuotas.*.fecha_pago' => 'required_with:forma_pago_cuotas|date',
+            
+            // Cliente
+            'client.tipo_documento' => 'required|string|in:1,4,6,0',
+            'client.numero_documento' => 'required|string|max:15',
+            'client.razon_social' => 'required|string|max:255',
+            'client.nombre_comercial' => 'nullable|string|max:255',
+            'client.direccion' => 'nullable|string|max:255',
+            'client.ubigeo' => 'nullable|string|size:6',
+            'client.distrito' => 'nullable|string|max:100',
+            'client.provincia' => 'nullable|string|max:100',
+            'client.departamento' => 'nullable|string|max:100',
+            'client.telefono' => 'nullable|string|max:20',
+            'client.email' => 'nullable|email|max:100',
+
+            // Detalles
+            'detalles' => 'required|array|min:1',
+            'detalles.*.codigo' => 'required|string|max:50',
+            'detalles.*.descripcion' => 'required|string|max:500',
+            'detalles.*.unidad' => 'required|string|max:3',
+            'detalles.*.cantidad' => 'required|numeric|min:0.001',
+
+            // Precio: Se acepta MODO RETAIL (con IGV) o MODO MAYORISTA (sin IGV)
+            'detalles.*.mto_precio_unitario' => 'required_without:detalles.*.mto_valor_unitario|numeric|min:0',
+            'detalles.*.mto_valor_unitario' => 'required_without:detalles.*.mto_precio_unitario|numeric|min:0',
+
+            'detalles.*.porcentaje_igv' => 'nullable|numeric|min:0',
+            'detalles.*.porcentaje_ivap' => 'nullable|numeric|min:0|max:100',
+            'detalles.*.mto_valor_gratuito' => 'nullable|numeric|min:0',
+            'detalles.*.tip_afe_igv' => 'nullable|string|in:10,11,12,13,14,15,16,17,20,21,30,31,32,33,34,35,36,40',
+            'detalles.*.codigo_producto_sunat' => 'nullable|string|max:50',
+
+            // ISC (Impuesto Selectivo al Consumo)
+            'detalles.*.tip_sis_isc' => 'nullable|string|in:01,02,03',
+            'detalles.*.porcentaje_isc' => 'nullable|numeric|min:0|max:1000',
+
+            // ICBPER (Impuesto a las Bolsas Plásticas)
+            'detalles.*.factor_icbper' => 'nullable|numeric|min:0',
+
+            // Descuentos por línea
+            'detalles.*.descuentos' => 'nullable|array',
+            'detalles.*.descuentos.*.monto' => 'required_with:detalles.*.descuentos|numeric|min:0',
+
+            // Detracción (opcional) - codigo_bien_servicio y cuenta_banco son obligatorios
+            'detraccion' => 'nullable|array',
+            'detraccion.codigo_bien_servicio' => 'required_with:detraccion|string|max:3',
+            'detraccion.codigo_medio_pago' => 'nullable|string|max:3',  // Default: 001 (Depósito en cuenta)
+            'detraccion.cuenta_banco' => 'required_with:detraccion|string|max:20', // Cuenta Banco de la Nación (OBLIGATORIO)
+            'detraccion.porcentaje' => 'nullable|numeric|min:0|max:100', // Se obtiene del catálogo si no se envía
+            'detraccion.monto' => 'nullable|numeric|min:0',              // Se calcula automáticamente si no se envía
+
+            // Percepción (opcional)
+            'percepcion' => 'nullable|array',
+            'percepcion.cod_regimen' => 'required_with:percepcion|string|max:2',
+            'percepcion.tasa' => 'required_with:percepcion|numeric|min:0|max:100',
+            'percepcion.monto' => 'required_with:percepcion|numeric|min:0',
+            'percepcion.monto_base' => 'required_with:percepcion|numeric|min:0',
+            'percepcion.monto_total' => 'required_with:percepcion|numeric|min:0',
+
+            // Retención (opcional)
+            'retencion' => 'nullable|array',
+            'retencion.cod_regimen' => 'required_with:retencion|string|max:2',
+            'retencion.tasa' => 'required_with:retencion|numeric|min:0|max:100',
+            'retencion.monto' => 'required_with:retencion|numeric|min:0',
+            'retencion.monto_base' => 'required_with:retencion|numeric|min:0',
+            'retencion.monto_total' => 'required_with:retencion|numeric|min:0',
+
+            // Descuentos globales
+            'descuentos' => 'nullable|array',
+            'descuentos.*.cod_tipo' => 'required_with:descuentos|string|in:00,01,02,03,04',
+            'descuentos.*.factor' => 'required_with:descuentos|numeric|min:0',
+            'descuentos.*.monto' => 'required_with:descuentos|numeric|min:0',
+            'descuentos.*.monto_base' => 'required_with:descuentos|numeric|min:0',
+
+            // Anticipos
+            'anticipos' => 'nullable|array',
+            'anticipos.*.tipo_doc_rel' => 'required_with:anticipos|string|in:02,03',
+            'anticipos.*.nro_doc_rel' => 'required_with:anticipos|string|max:50',
+            'anticipos.*.total' => 'required_with:anticipos|numeric|min:0',
+
+            // Datos adicionales opcionales
+            'guias' => 'nullable|array',
+            'documentos_relacionados' => 'nullable|array',
+            'datos_adicionales' => 'nullable|array',
+            'usuario_creacion' => 'nullable|string|max:100',
+
+            // Bancarización (opcional, pero recomendado si aplica)
+            'bancarizacion' => 'nullable|array',
+            'bancarizacion.medio_pago' => 'required_with:bancarizacion|string|max:50',
+            'bancarizacion.numero_operacion' => 'nullable|string|max:100',
+            'bancarizacion.fecha_pago' => 'nullable|date',
+            'bancarizacion.banco' => 'nullable|string|max:100',
+            'bancarizacion.observaciones' => 'nullable|string|max:500',
+        ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            // Validar que la sucursal pertenece a la empresa
+            $branch = Branch::where('id', $this->input('branch_id'))
+                          ->where('company_id', $this->input('company_id'))
+                          ->first();
+
+            if (!$branch) {
+                $validator->errors()->add('branch_id', 'La sucursal no pertenece a la empresa seleccionada.');
+            }
+
+            // Calcular monto total estimado para validar bancarización
+            $montoEstimado = $this->calcularMontoEstimado();
+            $moneda = $this->input('moneda', 'PEN');
+
+            $bancarizacionService = app(BancarizacionService::class);
+            $aplicaBancarizacion = $bancarizacionService->aplicaBancarizacion($montoEstimado, $moneda);
+
+            // Si aplica bancarización, validar que se proporcionen los datos
+            if ($aplicaBancarizacion && !$this->has('bancarizacion')) {
+                $umbral = $bancarizacionService->getUmbral($moneda);
+                $simbolo = $moneda === 'PEN' ? 'S/' : 'US$';
+
+                $validator->errors()->add('bancarizacion',
+                    "⚠️ BANCARIZACIÓN OBLIGATORIA: Esta operación supera el umbral de {$simbolo} " . number_format($umbral, 2) .
+                    " (Monto estimado: {$simbolo} " . number_format($montoEstimado, 2) . "). " .
+                    "Según la Ley N° 28194, debe proporcionar los datos del medio de pago bancario. " .
+                    "Sin este dato, el gasto NO será deducible para Impuesto a la Renta y NO otorgará crédito fiscal de IGV."
+                );
+            }
+
+            // Validar datos de bancarización si se proporcionaron
+            if ($this->has('bancarizacion')) {
+                $validacion = $bancarizacionService->validarDatosBancarizacion($this->input('bancarizacion'));
+
+                if (!$validacion['valido']) {
+                    foreach ($validacion['errores'] as $error) {
+                        $validator->errors()->add('bancarizacion', $error);
+                    }
+                }
+            }
+
+            // Validar código de detracción si se proporciona
+            if ($this->has('detraccion') && $this->input('detraccion.codigo_bien_servicio')) {
+                $detraccionService = app(DetraccionService::class);
+                $codigoBienServicio = $this->input('detraccion.codigo_bien_servicio');
+
+                if (!$detraccionService->esCodigoValido($codigoBienServicio)) {
+                    $validator->errors()->add('detraccion.codigo_bien_servicio',
+                        "El código de bien/servicio '{$codigoBienServicio}' no es válido. " .
+                        "Consulte el catálogo de detracciones en GET /api/v1/catalogos/detracciones"
+                    );
+                }
+            }
+        });
+    }
+
+    /**
+     * Calcular monto estimado de la factura para validación
+     */
+    private function calcularMontoEstimado(): float
+    {
+        $detalles = $this->input('detalles', []);
+        $total = 0;
+
+        foreach ($detalles as $detalle) {
+            $cantidad = $detalle['cantidad'] ?? 0;
+            $valorUnitario = $detalle['mto_valor_unitario'] ?? 0;
+            $tipAfeIgv = $detalle['tip_afe_igv'] ?? '10';
+            $porcentajeIgv = $detalle['porcentaje_igv'] ?? 18;
+
+            $subtotal = $cantidad * $valorUnitario;
+
+            // Si es gravado, agregar IGV
+            if ($tipAfeIgv === '10') {
+                $subtotal = $subtotal * (1 + ($porcentajeIgv / 100));
+            }
+
+            $total += $subtotal;
+        }
+
+        return $total;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'company_id.required' => 'La empresa es requerida.',
+            'company_id.exists' => 'La empresa seleccionada no existe.',
+            'branch_id.required' => 'La sucursal es requerida.',
+            'branch_id.exists' => 'La sucursal seleccionada no existe.',
+            'serie.required' => 'La serie es requerida.',
+            'serie.max' => 'La serie no puede tener más de 4 caracteres.',
+            'fecha_emision.required' => 'La fecha de emisión es requerida.',
+            'fecha_emision.date' => 'La fecha de emisión debe ser una fecha válida.',
+            'fecha_vencimiento.date' => 'La fecha de vencimiento debe ser una fecha válida.',
+            'fecha_vencimiento.after_or_equal' => 'La fecha de vencimiento debe ser igual o posterior a la fecha de emisión.',
+            'moneda.required' => 'La moneda es requerida.',
+            'moneda.in' => 'La moneda debe ser PEN o USD.',
+            'forma_pago_tipo.required' => 'El tipo de forma de pago es requerido.',
+            'forma_pago_tipo.in' => 'El tipo de forma de pago debe ser Contado o Credito.',
+            'client.tipo_documento.required' => 'El tipo de documento del cliente es requerido.',
+            'client.tipo_documento.in' => 'El tipo de documento del cliente debe ser válido.',
+            'client.numero_documento.required' => 'El número de documento del cliente es requerido.',
+            'client.razon_social.required' => 'La razón social del cliente es requerida.',
+            'detalles.required' => 'Los detalles son requeridos.',
+            'detalles.min' => 'Debe incluir al menos un detalle.',
+            'detalles.*.codigo.required' => 'El código del producto es requerido.',
+            'detalles.*.descripcion.required' => 'La descripción del producto es requerida.',
+            'detalles.*.unidad.required' => 'La unidad del producto es requerida.',
+            'detalles.*.cantidad.required' => 'La cantidad del producto es requerida.',
+            'detalles.*.cantidad.min' => 'La cantidad debe ser mayor a 0.',
+            'detalles.*.mto_valor_unitario.required' => 'El valor unitario es requerido.',
+            'detalles.*.mto_valor_unitario.min' => 'El valor unitario debe ser mayor o igual a 0.',
+            // Detracción
+            'detraccion.codigo_bien_servicio.required_with' => 'El código de bien/servicio es obligatorio para la detracción.',
+            'detraccion.cuenta_banco.required_with' => 'La cuenta del Banco de la Nación es obligatoria para la detracción. Esta es la cuenta donde el cliente depositará el monto de la detracción.',
+        ];
+    }
+}

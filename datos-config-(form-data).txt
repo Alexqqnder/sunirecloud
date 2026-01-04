@@ -1,0 +1,105 @@
+ Ahora configura tu Postman exactamente así:
+
+  Configuración de Postman
+
+  1. URL y Método:
+
+  POST http://localhost/api/v1/companies/complete
+
+  2. Headers:
+
+  Accept: application/json
+  NO agregues Content-Type (Postman lo configura automáticamente para form-data)
+
+  3. Body → form-data
+
+  Agrega cada uno de estos campos como filas en Postman:
+
+  | Key                                  | Value                                                           |
+  |--------------------------------------|-----------------------------------------------------------------|
+  | ruc                                  | 20161515649                                                     |
+  | razon_social                         | EMPRESA DEMO SUNAT ACTUALIZADA SAC                              |
+  | nombre_comercial                     | Empresa Demo Actualizada                                        |
+  | direccion                            | Av. Javier Prado Este 4200, San Borja                           |
+  | ubigeo                               | 150101                                                          |
+  | distrito                             | Lima                                                            |
+  | provincia                            | Lima                                                            |
+  | departamento                         | Lima                                                            |
+  | telefono                             | 01-4567890                                                      |
+  | email                                | contacto@techsolutions.com                                      |
+  | web                                  | https://techsolutions.com                                       |
+  | telefono_2                           | 987654321                                                       |
+  | telefono_3                           | 912345678                                                       |
+  | whatsapp                             | 987654321                                                       |
+  | email_ventas                         | ventas@techsolutions.com                                        |
+  | email_soporte                        | soporte@techsolutions.com                                       |
+  | facebook                             | https://facebook.com/techsolutions                              |
+  | instagram                            | https://instagram.com/techsolutions                             |
+  | twitter                              | https://twitter.com/techsolutions                               |
+  | cuentas_bancarias[0][banco]          | BCP                                                             |
+  | cuentas_bancarias[0][moneda]         | PEN                                                             |
+  | cuentas_bancarias[0][tipo_cuenta]    | CORRIENTE                                                       |
+  | cuentas_bancarias[0][numero]         | 194-12345678-0-12                                               |
+  | cuentas_bancarias[0][cci]            | 00219400123456780112                                            |
+  | cuentas_bancarias[0][titular]        | EMPRESA DEMO SAC                                                |
+  | cuentas_bancarias[1][banco]          | Interbank                                                       |
+  | cuentas_bancarias[1][moneda]         | USD                                                             |
+  | cuentas_bancarias[1][tipo_cuenta]    | AHORROS                                                         |
+  | cuentas_bancarias[1][numero]         | 200-12345678                                                    |
+  | cuentas_bancarias[1][cci]            | 00320001234567800001                                            |
+  | cuentas_bancarias[1][titular]        | EMPRESA DEMO SAC                                                |
+  | billeteras_digitales[0][tipo]        | YAPE                                                            |
+  | billeteras_digitales[0][numero]      | 987654321                                                       |
+  | billeteras_digitales[0][titular]     | Juan Pérez                                                      |
+  | billeteras_digitales[1][tipo]        | PLIN                                                            |
+  | billeteras_digitales[1][numero]      | 912345678                                                       |
+  | billeteras_digitales[1][titular]     | María García                                                    |
+  | mensaje_pdf                          | ¡Gracias por su compra! Su confianza es nuestro mejor respaldo. |
+  | terminos_condiciones_pdf             | Todos los productos tienen garantía de 30 días.                 |
+  | politica_garantia                    | Garantía válida presentando este comprobante.                   |
+  | mostrar_cuentas_en_pdf               | true                                                            |
+  | mostrar_billeteras_en_pdf            | true                                                            |
+  | mostrar_redes_sociales_en_pdf        | false                                                           |
+  | mostrar_contactos_adicionales_en_pdf | true                                                            |
+  | usuario_sol                          | MODDATOS                                                        |
+  | clave_sol                            | moddatos                                                        |
+  | modo_produccion                      | false                                                           |
+  | activo                               | true                                                            |
+  | certificado_pem                      | [File - seleccionar archivo .pem]                               |
+  | logo_path                            | [File - seleccionar imagen .png o .jpg]                         |
+
+  4. Screenshot de referencia de cómo debe verse:
+
+  En Postman, en la pestaña Body → form-data, debes ver algo así:
+
+  Key                                      | Value                          | Type
+  -----------------------------------------------------------------------------------------------------
+  ruc                                      | 20161515649                   | Text
+  razon_social                             | EMPRESA DEMO...               | Text
+  ...
+  cuentas_bancarias[0][banco]             | BCP                            | Text
+  cuentas_bancarias[0][moneda]            | PEN                            | Text
+  cuentas_bancarias[0][tipo_cuenta]       | CORRIENTE                      | Text
+  cuentas_bancarias[0][numero]            | 194-12345678-0-12             | Text
+  cuentas_bancarias[0][cci]               | 00219400123456780112          | Text
+  cuentas_bancarias[0][titular]           | EMPRESA DEMO SAC              | Text
+  cuentas_bancarias[1][banco]             | Interbank                      | Text
+  ...
+  certificado_pem                          | [certificado.pem]              | File
+  logo_path                                | [logo.png]                     | File
+
+  5. Enviar la Request
+
+  Después de configurar todo, envía la request y:
+
+  1. Revisa el log para ver qué datos llegaron:
+  tail -50 storage/logs/laravel.log
+
+  2. Revisa la respuesta - debe decir:
+  {
+    "success": true,
+    "message": "Empresa creada exitosamente con toda la información",
+    ...
+  }
+
+  Si el mensaje dice solo "Empresa creada exitosamente", significa que estás usando la URL equivocada.
